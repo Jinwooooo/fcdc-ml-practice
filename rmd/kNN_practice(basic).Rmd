@@ -39,12 +39,12 @@ optimal.k <- caret::train(Gender ~ ., data=train, method='knn', trControl=ctrl)
 plot(optimal.k)
 ```
 
-Optimal Value : k = 9
+Optimal Value : k = 5
 
 ### k-NN Result and Confusion Matrix
 ```{r}
-knn9.train <- class::knn(train=train[,2:3], test=test[,2:3], cl=train[,1], k=9)
-caret::confusionMatrix(knn9.train, as.factor(test[,1]))
+knn5.train <- class::knn(train=train[,2:3], test=test[,2:3], cl=train[,1], k=5)
+caret::confusionMatrix(knn5.train, as.factor(test[,1]))
 ```
 
 

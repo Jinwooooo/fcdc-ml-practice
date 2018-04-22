@@ -1,0 +1,48 @@
+---
+title: "k-NN Practice (Image)"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+## Table of Contents
+1. Setup
+2. Separate Train and Test Data
+3. Use caret::train to find the optimal k for k-NN
+4. Confusion Matrix of the Result from k-NN
+
+### Setup
+```{r}
+library(pacman)
+pacman::p_load(data.table)
+# the data is around 6MB, so it takes some time to import
+main <- as.data.frame(data.table::fread('https://raw.githubusercontent.com/Jinwooooo/fcdc-ml-practice/master/data/recognizer_train.csv'))
+# checking if how many rows the data has
+nrow(main)
+```
+
+### Separate Train and Test Data
+```{r}
+# setting seed
+set.seed(55)
+# splitting data
+index.train <- sample(1:nrow(main), round(nrow(main) * 0.8))
+train <- main[index.train,]
+test <- main[-index.train,]
+head(train)
+```
+
+### Use caret::train to find the optimal k for k-NN
+```{r}
+ctrl <- caret::trainControl(method='repeatedcv', repeats=3)
+optimal.k <- caret::train(label ~ ., data=train, method='knn', trControl=ctrl)
+plot(optimal.k)
+```
+
+Optimal Value : k = 5
+
+### k-NN Result and Confusion Matrix
+```{r}
+knn5.train <- class::knn(train=train[,2:ncol(train)], test=test[,2:ncol(test)], cl=train[,1], k=5)
+caret::confusionMatrix(knn5.train, as.factor(test[,1]))
+```
+
