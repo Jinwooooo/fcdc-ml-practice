@@ -1,0 +1,108 @@
+---
+title: "Logistics Practice"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+## Table of Contents
+1. Separating Train and Test Data
+2. Plotting
+3. Logistic Regression Model
+4. Creating Confusion Matrix
+5. ROC and AUC
+6. Repeated Cross Validation
+7. Repeated Cross Validation Confusion Matrix 
+
+### Basic Setup
+```{r}
+library(pacman)
+pacman::p_load(data.table,dplyr,caret,ROCR)
+main <- as.data.frame(data.table::fread("https://raw.githubusercontent.com/Jinwooooo/fcdc-ml-practice/master/data/01_heights_weights_genders.csv"))
+# due to NA values, need to either insert mean values instead or exclude them (in this case, will use the former)
+main$Height[is.na(main$Height)] <- mean(main$Height, na.rm=T)
+main$Weight[is.na(main$Weight)] <- mean(main$Weight, na.rm=T)
+# due to Gender values being a character value, reformatting them into a factor for regression
+main$Gender <- ifelse(main$Gender=='Male', 0, 1)
+```
+
+### 1. Separating Train and Test Data
+```{r}
+# setting seed
+set.seed(33)
+# splitting data
+index.train <- sample(1:nrow(main), round(nrow(main) * 0.8))
+train <- main[index.train, ]
+test <- main[-index.train, ]
+# looking at the overall data
+glimpse(train)
+```
+
+### 2. Plotting
+```{r}
+# Plotting (pch is one of the theme of the graphs)
+plot(train$Height, train$Weight, pch=21, bg=c('blue','red')[train$Gender+1])
+```
+
+### 3. Logistic Regression Model
+```{r}
+# Using Logistic Reg because the Gender is value 0/1
+glm.train <- glm(Gender ~ ., family=binomial(link='logit'), data=train)
+summary(glm.train)
+```
+
+### 4. Creating Confusion Matrix
+```{r}
+# predicting what the test Genders are with [Height and Weight]
+prediction <- predict(glm.train, newdata = test, type = "response")
+# because it is a regression (equation), it will return values between 0~1 (not binary)
+# manually splitting data into 0 and 1 (male/female in this case), to see how well it predicted
+prediction.bin <- ifelse(prediction > 0.5, 1, 0)
+# confusion Matrix is used to usually see if the regression is overfitting the data points
+caret::confusionMatrix(as.factor(prediction.bin), reference = as.factor(prediction.bin))
+```
+
+### 5. ROC and AUC
+**ROC (Receiver Operating Characteristics)** - ROC is used to see visually how well the prediction went
+
+* if it is close to a linear from origin to the top right corner, it means the model is as bad as just randomly guessing
+* if it is close to a log curve, it means model is better than just randomly guessing
+* if it is close to a exponential curve, it means the model is predicting values the opposite of what the true value is
+```{r}
+# ** note that if you just inverse the output of a exponential curve, it is same as a log curve overall **
+prediction.roc <- predict(glm.train, newdata=test, type='response')
+prediction.standardized <- ROCR::prediction(prediction.roc, test$Gender)
+prediction.performance <- ROCR::performance(prediction.standardized, measure='tpr', x.measure='fpr')
+plot(prediction.performance)
+```
+**AUC (Area Under the Curve)** - AUC is used as the same purpose as ROC, but in numbers instead
+
+* if it is close to 0.5, it means the model is as bad as just randomly guessing
+* if it s close to 1, it means the model better than just randmoly guessing
+* if it s less than 0.5, inverse the predicting values (as mentioned before) 
+```{r}
+auc <- performance(prediction.standardized, measure='auc')
+# @ for class is $ for list
+auc <- auc@y.values[[1]]
+auc
+```
+
+### 6. Repeated Cross Validation (use caret package for efficiency)
+Cross Validation is crucial to know that the model robust (i.e. not heavily affected by sample/train data).
+
+The mose general Cross Validation Techniques are:
+
+* k-fold cross validation (which is done here, k = 10 and repated 5 times)
+* leave-p-out cross validation (this is more of a brute force technique)
+```{r}
+control <- caret::trainControl(method="repeatedcv", number=10, repeats=5)
+glm.cv.gender <- caret::train(as.factor(Gender) ~ .,
+               data=train, method="glm", na.action=na.omit,
+               family=binomial(link='logit'), trControl=control)
+print(glm.cv.gender)
+```
+
+### 7. Repeated Cross Validation Confusion Matrix
+```{r}
+predict.cv.gender <- predict(glm.cv.gender, test, type = "raw", na.action = na.pass)
+confusionMatrix(as.factor(predict.cv.gender), as.factor(test$Gender))
+```
