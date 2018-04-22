@@ -1,0 +1,58 @@
+---
+title: "k-NN Practice (Basic)"
+author: "Jinwoo Chung"
+output: html_document
+---
+## Table of Contents
+1. Setup
+2. Separate Train and Test Data
+3. Use caret::train to find the optimal k for k-NN
+4. Confusion Matrix of the Result from k-NN
+
+### Slight Summary of k-NN
+k-Nearest Neighbor (k-NN) is one of primitive classifying algorithm available in Machine Learning. 
+
+### Setup
+```{r}
+library(pacman)
+pacman::p_load(data.table,dplyr,caret,class)
+main <- as.data.frame(data.table::fread("https://raw.githubusercontent.com/Jinwooooo/fcdc-ml-practice/master/data/01_heights_weights_genders.csv"))
+# due to Gender values being a character value, reformatting them into a factor for regression
+```
+
+### Separate Train and Test Data
+```{r}
+# setting seed
+set.seed(30)
+# splitting data
+# can also use caret::createDataPartition(main$Gender, p = 0.8, list = FALSE) for completely random set
+index.train <- sample(1:nrow(main), round(nrow(main) * 0.8))
+train <- main[index.train,]
+test <- main[-index.train,]
+glimpse(train)
+```
+
+### Use caret::train to find the optimal k for k-NN
+```{r}
+ctrl <- caret::trainControl(method='repeatedcv', repeats=3)
+optimal.k <- caret::train(Gender ~ ., data=train, method='knn', trControl=ctrl)
+plot(optimal.k)
+```
+
+Optimal Value : k = 9
+
+### k-NN Result and Confusion Matrix
+```{r}
+knn9.train <- class::knn(train=train[,2:3], test=test[,2:3], cl=train[,1], k=9)
+caret::confusionMatrix(knn9.train, as.factor(test[,1]))
+```
+
+
+
+
+
+
+
+
+
+
