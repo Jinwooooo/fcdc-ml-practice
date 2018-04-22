@@ -1,0 +1,164 @@
+---
+title: "Polynomial Pratice"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+## Table of Contents
+1. Setup (Data is from gapminder)
+2. Separate Train and Test Data
+3. Plot (locate Significant Variables)
+4. Linear Regression, Quadratic Regression, Cubic Regression, Polynomial Regression
+5. 3-fold Cross Validation (Use only 1350 of Train Data)
+6. Compare Linear Regression and other Polynomial Regression
+7. **Conditional** There are some problems with Fourth Power Regression, locate and elaborate
+
+### Setup
+```{r}
+library(pacman)
+pacman::p_load(gapminder,dplyr)
+glimpse(gapminder)
+```
+### Separate Train and Test Data
+```{r}
+set.seed(123)
+index.train <- sample(1:nrow(gapminder), round(nrow(gapminder) * 0.8))
+train <- gapminder[index.train, ]
+test <- gapminder[-index.train, ]
+train
+```
+
+### Plot (locate Significant Variables)
+```{r}
+pairs(train)
+```
+
+Removing countries and continents
+```{r}
+pairs(~ year + lifeExp + pop + gdpPercap, data=train)
+```
+
+**Choosing lifeExp as dependent var**
+
+### Linear Regression, Quadratic Regression, Cubic Regression, Polynomial Regression
+1. Linear Regression
+```{r}
+lm.lin.gapminder <- lm(lifeExp ~ year + pop + gdpPercap, data = train)
+summary(lm.lin.gapminder)
+```
+R-squared values are pretty low and pop p-value seems pretty low as well.
+
+2. Quadratic Regression
+```{r}
+lm.quad.gapminder <- lm(lifeExp ~ year + I(year^2) + 
+                          pop + I(pop^2) +
+                          gdpPercap + I(gdpPercap^2), data = train)
+summary(lm.quad.gapminder)
+```
+R-squared values went up, but pop is starting to lose its value as an independent variable. **pop variable will be omitted**
+
+3. Cubic Regression
+```{r}
+lm.cub.gapminder <- lm(lifeExp ~ year + I(year^2) + I(year^3) +
+                          gdpPercap + I(gdpPercap^2) + I(gdpPercap^3), data = train)
+summary(lm.cub.gapminder)
+```
+
+R-squared values went down and also year lost its value as an independent variable. Should use quadratic for the final model
+** Fourth Power Regression will be attempted for practice**
+
+4. Fourth Power Regression
+```{r}
+lm.four.gapminder <- lm(lifeExp ~ year + I(year^2) + I(year^3) + I(year^4) +
+                          gdpPercap + I(gdpPercap^2) + I(gdpPercap^3) + I(gdpPercap^4), data = train)
+summary(lm.four.gapminder)
+```
+Fourth Power on year has NA value. (this is the problem that **Condition** has stated in the Table of Contents). This problem arises due to multicolinearity.
+
+## 3-fold Cross Validation (Use only 1350 of Train Data)
+Splitting Data for 3-fold CV (no repeat)
+```{r}
+train.random <- sample(train)[1:1350,]
+train.D1 <- train.random[1:450,]
+train.D2 <- train.random[451:900,]
+train.D3 <- train.random[901:1350,]
+```
+Linear Regression (using only year and gdpPercap as independent variable)
+```{r}
+# Excluding D1
+lm.linear.cv1 <- lm(lifeExp ~ year + gdpPercap,
+                    data = rbind(train.D2, train.D3))
+# MSE
+mse.linear.cv1 <- mean((predict(lm.linear.cv1, newdata=train.D1) - train.D1$lifeExp)^2)
+
+# Excluding D2
+lm.linear.cv2 <- lm(lifeExp ~ year + gdpPercap,
+                    data = rbind(train.D1, train.D3))
+# MSE
+mse.linear.cv2 <- mean((predict(lm.linear.cv1, newdata=train.D2) - train.D2$lifeExp)^2)
+
+# Excluding D3
+lm.linear.cv3 <- lm(lifeExp ~ year + gdpPercap,
+                    data = rbind(train.D1, train.D2))
+# MSE
+mse.linear.cv3 <- mean((predict(lm.linear.cv1, newdata=train.D3) - train.D3$lifeExp)^2)
+
+# Average of MSE
+(mse.linear.cv1 + mse.linear.cv2 + mse.linear.cv3) / 3
+```
+Quadratic Regression (using only year and gdpPercap as independent variable)
+```{r}
+# Excluding D1
+lm.quad.cv1 <- lm(lifeExp ~ year + I(year^2) + gdpPercap + I(gdpPercap^2),
+                    data = rbind(train.D2, train.D3))
+# MSE
+mse.quad.cv1 <- mean((predict(lm.quad.cv1, newdata=train.D1) - train.D1$lifeExp)^2)
+
+# Excluding D2
+lm.quad.cv2 <- lm(lifeExp ~ year + I(year^2) + gdpPercap + I(gdpPercap^2),
+                    data = rbind(train.D1, train.D3))
+# MSE
+mse.quad.cv2 <- mean((predict(lm.quad.cv1, newdata=train.D2) - train.D2$lifeExp)^2)
+
+# Excluding D3
+lm.quad.cv3 <- lm(lifeExp ~ year + I(year^2) + gdpPercap + I(gdpPercap^2),
+                    data = rbind(train.D1, train.D2))
+# MSE
+mse.quad.cv3 <- mean((predict(lm.quad.cv1, newdata=train.D3) - train.D3$lifeExp)^2)
+
+# Average of MSE
+(mse.quad.cv1 + mse.quad.cv2 + mse.quad.cv3) / 3
+```
+Cubic Regression (using only year and gdpPercap as independent variable)
+```{r}
+# Excluding D1
+lm.cub.cv1 <- lm(lifeExp ~ year + I(year^2) + I(year^3) + gdpPercap + I(gdpPercap^2) + I(gdpPercap^3),
+                    data = rbind(train.D2, train.D3))
+# MSE
+mse.cub.cv1 <- mean((predict(lm.cub.cv1, newdata=train.D1) - train.D1$lifeExp)^2)
+
+# Excluding D2
+lm.cub.cv2 <- lm(lifeExp ~ year + I(year^2) + I(year^3) + gdpPercap + I(gdpPercap^2) + I(gdpPercap^3),
+                    data = rbind(train.D1, train.D3))
+# MSE
+mse.cub.cv2 <- mean((predict(lm.cub.cv1, newdata=train.D2) - train.D2$lifeExp)^2)
+
+# Excluding D3
+lm.cub.cv3 <- lm(lifeExp ~ year + I(year^2) + I(year^3) + gdpPercap + I(gdpPercap^2) + I(gdpPercap^3),
+                    data = rbind(train.D1, train.D2))
+# MSE
+mse.cub.cv3 <- mean((predict(lm.cub.cv1, newdata=train.D3) - train.D3$lifeExp)^2)
+
+# Average of MSE
+(mse.cub.cv1 + mse.cub.cv2 + mse.cub.cv3) / 3
+```
+
+#### Repeat Linear Regression CV for all Polynomial Regression and find the average MSE
+> This is much easier to do with repeatcv function with caret package. (used with logistic regression)
+
+
+## Compare Linear Regression and other Polynomial Regression
+Cubic Regression gives the best result in terms of MSE, but due to its significant value is not good, quadratic seems to be the best model for this data
+
+
+
