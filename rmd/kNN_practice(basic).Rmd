@@ -9,9 +9,6 @@ output: html_document
 3. Use caret::train to find the optimal k for k-NN
 4. Confusion Matrix of the Result from k-NN
 
-### Slight Summary of k-NN
-k-Nearest Neighbor (k-NN) is one of primitive classifying algorithm available in Machine Learning. 
-
 ### Setup
 ```{r}
 library(pacman)
@@ -34,20 +31,24 @@ glimpse(train)
 
 ### Use caret::train to find the optimal k for k-NN
 ```{r}
+# doing 3-fold cv
 ctrl <- caret::trainControl(method='repeatedcv', repeats=3)
-optimal.k <- caret::train(Gender ~ ., data=train, method='knn', trControl=ctrl)
+# default k values are from 5~9, in order to do wider range of k, need to expand the k grid
+grid <- expand.grid(k=c(1,3,5,7,10,15,20,25,30))
+optimal.k <- caret::train(Gender ~ ., data=train, method='knn', trControl=ctrl, tuneGrid = grid)
 plot(optimal.k)
 ```
 
-Optimal Value : k = 5
+Optimal Value : k = 7
 
 ### k-NN Result and Confusion Matrix
 ```{r}
-knn5.train <- class::knn(train=train[,2:3], test=test[,2:3], cl=train[,1], k=5)
-caret::confusionMatrix(knn5.train, as.factor(test[,1]))
+knn7.train <- class::knn(train=train[,2:3], test=test[,2:3], cl=train[,1], k=7)
+caret::confusionMatrix(knn7.train, as.factor(test[,1]))
 ```
 
-
+#### Conclusion
+Accuracy is fairly high (91.75%), but the Kappa value is not as high. Overall kNN seems to be a good fit for this data set
 
 
 

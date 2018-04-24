@@ -1,0 +1,99 @@
+---
+title: "Tree Practice (Classification)"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+## Table of Contents
+
+1. Setup
+2. Separate Train and Test Data
+3. Generate Full Tree Model
+4. Use cp values to prune
+5. Generate Confusion Matrix and RMSE
+6. Draw ROC
+
+### Setup
+```{r}
+library(pacman)
+pacman::p_load(readr,dplyr,rpart,rpart.plot,ROCR)
+main <- readr::read_csv("https://onlinecourses.science.psu.edu/stat857/sites/onlinecourses.science.psu.edu.stat857/files/german_credit.csv")
+head(main)
+```
+
+### Separate Train and Test Data
+```{r}
+# setting seed
+set.seed(67)
+# splitting data
+index.train <- sample(1:nrow(main), round(nrow(main) * 0.8))
+train <- main[index.train,]
+test <- main[-index.train,]
+head(train)
+```
+
+### Generate Full Tree Model
+```{r}
+tm.train <- rpart::rpart(Creditability ~ ., method="class", data = train)
+# use summary for a text output
+# summary(tm.train)
+# using rpart.plot for a visual output
+rpart.plot::rpart.plot(tm.train)
+```
+
+Just by looking at the tree graph, seems like there are multiple classification and is likely to be overfitted to the data. Will have to prune
+with cp (although # of max values in a node / height of a tree can be also used to prune, they only are usable when you already know how it the
+overall classification will go and how many data points will be classified (i.e. have VERY GOOD knowledge of data beforehand)).
+
+### Use cp values to prune (**Conditional** default cp = 0.01, if the value is too big, what to do next?)
+```{r}
+# finding a good value for cp w/ plotcp
+rpart::plotcp(tm.train)
+# also can use when cp is lowest
+tm.train$cptable[which.min(tm.train$cptable[,"xerror"]),"CP"]
+```
+
+Although cp is lowest at around 0.01, seems that it has a considerable drop around 0.033 and are nearly similar.
+In order to avoid overfitting, will choose cp = 0.033
+
+```{r}
+tm.cp1.train <- rpart::rpart(Creditability ~ ., method="class", data = train, control = rpart::rpart.control(cp = 0.033))
+rpart.plot::rpart.plot(tm.cp1.train)
+```
+
+### Generate Confusion Matrix and RMSE
+```{r}
+# predicting with the test data
+prediction <- predict(tm.cp1.train, test, type = "class")
+# generating confusion matrix for the test data
+caret::confusionMatrix(prediction, as.factor(test$Creditability))
+```
+
+As seen as the output above, the kappa value is very low while accuracy is not as bad in terms if prediction rate. Due to the fact that kappa value is low, 
+it isn't a very reliable model to use. Since the Kappa value is bad, trying when xerror is lowest.
+
+```{r}
+# finding lowest xerror from model
+cp.min <- tm.train$cptable[which.min(tm.train$cptable[,"xerror"]),"CP"]
+# setting prune condition as lowest xerror cp
+tm.cpmin.train <- rpart::prune(tm.train, cp=cp.min)
+rpart.plot::rpart.plot(tm.cpmin.train)
+# creating confusion matrix to compare result
+prediction.cpmin <- predict(tm.cpmin.train, test, type = "class")
+caret::confusionMatrix(prediction.cpmin, as.factor(test$Creditability))
+```
+
+Very similar. Thus, will conclude that tree classification is not a good ML to use on this data set.
+```{r}
+# finding RMSE value
+sqrt(mean((as.numeric(prediction) - test$Creditability)^2))
+```
+
+## Drawing ROC when cp = 0.033
+```{r}
+prediction.rate <- ROCR::prediction(as.numeric(prediction), test$Creditability)
+prediction.rate.performance <- ROCR::performance(prediction.rate, measure = "tpr", x.measure = "fpr")
+plot(prediction.rate.performance)
+```
+
+Not very far from the linear line from origin since accuracy was fairly low and kappa value was very low.

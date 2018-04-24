@@ -1,0 +1,82 @@
+---
+title: "Tree Practice (Regression)"
+author: "Jinwoo Chung"
+date: "4/23/2018"
+output: html_document
+---
+
+## Table of Contents
+
+1. Setup
+2. Separate Train and Test Data
+3. Generate Full Tree Model
+4. Evalute Full Tree Model
+5. Use cp values to prune (**Conditional** default cp = 0.01, if the value is too big, what to do next?)
+
+### Setup
+```{r}
+library(pacman)
+pacman::p_load(dplyr,ROCR,caret)
+main <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data", header = FALSE)
+names(main) <- c('Sex', 'Length', 'Diameter', 'Height', 'Whole weight', 'Shucked weight', 'Viscera weight', 'Shell weight', 'Rings')
+glimpse(main)
+```
+
+### Separate Train and Test Data
+```{r}
+# setting seed
+set.seed(77)
+# splitting data
+index.train <- sample(1:nrow(main), round(nrow(main) * 0.8))
+train <- main[index.train,]
+test <- main[-index.train,]
+head(train)
+```
+
+### Generate Full Tree Model
+```{r}
+tm.train <- rpart::rpart(Rings ~ ., method="anova", data = train)
+# use summary for a text output
+# summary(tm.train)
+# using rpart.plot for a visual output
+rpart.plot::rpart.plot(tm.train)
+```
+
+### Evalute Full Tree Model
+```{r}
+prediction <- predict(tm.train, test)
+# using rmse as a indicator for the model
+sqrt(mean((prediction - test$Rings)^2))
+```
+
+### Use cp values to prune (**Conditional** default cp = 0.01, if the value is too big, what to do next?)
+```{r}
+rpart::plotcp(tm.train)
+# finding minimum xerror
+tm.train$cptable[which.min(tm.train$cptable[,"xerror"]),"CP"]
+```
+
+By looking at the graph, it starts to lose its relative error decrease rate around 0.032, but it still goes down slightly.
+Seems like it may go further down than 0.011 (when minimum for xerror is calcualted, the value returns 0.01, so its not much improvement).
+Choosing cp = 0.013
+
+```{r}
+tm.cp.train <- rpart::rpart(Rings ~ ., data = train, cp=0.013)
+rpart.plot::rpart.plot(tm.cp.train)
+```
+
+Evaluating the result of when cp=0.013
+```{r}
+prediction.cp <- predict(tm.cp.train, test)
+# using rmse as a indicator for the model
+sqrt(mean((prediction.cp - test$Rings)^2))
+```
+
+The Actual RMSE goes up, meaning the default cp value 0.01 had better result. Since xerror was minimum at 0.01, seems like that has caused
+the RMSE to be the optimal at 0.01. Cannot judge that this ML model is bad since there are no other ML used that can be compared to this model.
+However, I feel that it is not a very good model to use.
+
+
+
+
+

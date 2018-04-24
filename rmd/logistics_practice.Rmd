@@ -30,7 +30,7 @@ main$Gender <- ifelse(main$Gender=='Male', 0, 1)
 # setting seed
 set.seed(33)
 # splitting data
-index.train <- sample(1:nrow(main), round(nrow(main) * 0.8))
+index.train <- dplyr::sample(1:nrow(main), round(nrow(main) * 0.8))
 train <- main[index.train, ]
 test <- main[-index.train, ]
 # looking at the overall data
