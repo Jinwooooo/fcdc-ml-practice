@@ -1,0 +1,61 @@
+---
+title: "k-Means Practice"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+## Table of Contents
+1. Setup and Plot for Comparison
+2. Use a general k value and cluster with k-Means
+3. Find the optimal k value
+4. **Conditional** What happens when k = 3
+
+### Setup and Plot for Comparison
+```{r}
+library(pacman)
+pacman::p_load(data.table,dplyr)
+main <- as.data.frame(data.table::fread("https://raw.githubusercontent.com/Jinwooooo/fcdc-ml-practice/master/data/01_heights_weights_genders.csv"))
+main$Gender <- ifelse(main$Gender=='Male', 0, 1)
+glimpse(main)
+```
+
+Plotting Female as red Male as blue
+```{r}
+plot(main$Height, main$Weight, pch=21, bg=c('blue','red')[main$Gender+1])
+```
+
+### Use a general k value and cluster with k-Means
+```{r}
+km.general <- kmeans(main[,2:3], 2)
+km.general
+```
+
+Result of the clustering
+```{r}
+plot(main$Height, main$Weight, pch=21, bg=c('red','blue')[km.general$cluster])
+```
+
+Somewhat decent, but as you can see in this graph, this is the limitation of k-Means ML Model. It separates completely
+into 2 different cluster, so there will be no outliers within the clusters.
+
+### Find the optimal k value
+```{r}
+# tot.withinss = Total within-cluster sum of squares
+twcss <- sapply(1:5, function(k) { kmeans(main[, 2:3], k)$tot.withinss })
+plot(1:5, twcss, type="b", pch = 19, xlab='Number of clusters K', ylab='Total within-clusters sum of squares')
+```
+
+We know that there is only 2 classification, but this graph shows that 3 might also be a good number of clusters
+by just looking at the total within cluster sum of squares
+
+### **Conditional** What happens when k = 3
+```{r}
+km.cond <- kmeans(main[,2:3], 3)
+km.cond
+```
+
+Result of the conditional (k=3) clustering
+```{r}
+plot(main$Height, main$Weight, pch=21, bg=c('red','green','blue')[km.cond$cluster])
+```
+
