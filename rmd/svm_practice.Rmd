@@ -1,0 +1,139 @@
+---
+title: "SVM Practice"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+### Table of Contents
+Using iris (comes w/ basic package) data, no need to setup data
+1. Separate Test and Train Data
+2. Use Linear and Radial Kernel for Model and Create Confusion Matrix
+3. Use 5-fold CV and Bootstrap to find the best Model
+4. By using the best Model, Predict and Create Confusion Matrix
+
+```{r}
+library(pacman)
+pacman::p_load(dplyr,caret,e1071)
+# looking at overall look of the data
+glimpse(iris)
+```
+
+### Separate Test and Train Data
+```{r}
+# setting seed
+set.seed(55)
+# splitting data
+index.train <- sample(1:nrow(iris), round(nrow(iris) * 0.8))
+train <- iris[index.train, ]
+test <- iris[-index.train, ]
+# looking at the overall data
+glimpse(train)
+```
+
+### Use Linear and Radial Kernel for Model and Create Confusion Matrix
+
+Linear (Model)
+```{r}
+svm.linear.train <- svm(Species ~ ., data=iris, kernel='linear')
+summary(svm.linear.train)
+```
+
+Linear (Plotting for Sepal)
+```{r}
+# need to do slice in order to show 3 different species, if not it will separate line in the middle
+# the data points will still be separated visually though
+plot(svm.linear.train, test, Petal.Width ~ Petal.Length, slice = list(Sepal.Width = 3, Sepal.Length = 4))
+```
+
+Can do this with Petal as well to find how well the model does for this dataset.
+
+Linear (Confusion Matrix)
+```{r}
+prediction.linear.train <- predict(svm.linear.train, test)
+confusionMatrix(prediction.linear.train, test$Species)
+```
+
+Radial (Model)
+```{r}
+svm.radial.train <- svm(Species ~ ., data=iris, kernel='radial')
+summary(svm.radial.train)
+```
+
+Radial (Plotting for Sepal)
+```{r}
+plot(svm.radial.train, test, Petal.Width ~ Petal.Length, slice = list(Sepal.Width = 2, Sepal.Length = 3.5))
+```
+
+Radial (Confusion Matrix)
+```{r}
+prediction.radial.train <- predict(svm.radial.train, test)
+confusionMatrix(prediction.radial.train, test$Species)
+```
+
+### Use 5-fold CV and Bootstrap to find the best Model
+Linear (5-fold)
+```{r}
+svm.cv.linear <- tune(svm, Species ~ ., data = iris, kernel="linear", ranges = list(cost = 2^(-1:4)), 
+                      tunecontrol = tune.control(sampling = "cross", cross=5))
+plot(svm.cv.linear)
+svm.cv.linear$best.performance
+```
+
+Radial (5-fold)
+```{r}
+svm.cv.radial <- tune(svm, Species ~ ., data = iris, kernel="radial", ranges = list(gamma = 2^(-5:1), cost = 2^(-1:4)), 
+                      tunecontrol = tune.control(sampling = "cross", cross=5))
+plot(svm.cv.radial)
+svm.cv.radial$best.performance
+```
+
+Linear (bootstrap)
+```{r}
+svm.bs.linear <- tune(svm, Species ~ ., data = iris, kernel="linear", ranges = list(cost = 2^(-1:4)), 
+                      tunecontrol = tune.control(sampling = "bootstrap", boot.size=0.8, nboot=5))
+plot(svm.bs.linear)
+svm.bs.linear$best.performance
+```
+
+Radial (bootstrap)
+```{r}
+svm.bs.radial <- tune(svm, Species ~ ., data = iris, kernel="radial", ranges = list(gamma = 2^(-5:1), cost = 2^(-1:4)), 
+                      tunecontrol = tune.control(sampling = "bootstrap", boot.size=0.8, nboot=5))
+plot(svm.bs.radial)
+svm.bs.radial$best.performance
+```
+
+Seems like linear bootstrap did the best as it's error is the lowest on best performance
+
+### By using the best Model, Predict and Create Confusion Matrix
+
+Linear (Best Model)
+```{r}
+svm.bs.linear$best.model
+```
+
+Linear (Plotting for Sepal)
+```{r}
+plot(svm.bs.linear$best.model, test, Sepal.Width ~ Sepal.Length,
+     slice = list(Petal.Width = 0.5, Petal.Length = 3))
+```
+
+Linear (Confusion Matrix)
+```{r}
+prediction.linear.best.train <- predict(svm.bs.linear$best.model, test)
+confusionMatrix(prediction.linear.best.train, test$Species)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

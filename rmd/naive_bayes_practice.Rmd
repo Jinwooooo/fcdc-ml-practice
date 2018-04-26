@@ -1,0 +1,81 @@
+---
+title: "Naive Bayes Practice"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+## Table of Contents
+1. Setup
+2. Separate Train and Test Data
+3. Create Naive Bayes Model
+4. Create Confusion Matrix
+5. Use caret package to find accuracy of the model (i.e. do Cross Validation)
+
+### Setup
+```{r}
+library(pacman)
+pacman::p_load(caret,naivebayes,data.table,dplyr)
+main <- as.data.frame(data.table::fread('https://raw.githubusercontent.com/Jinwooooo/fcdc-ml-practice/master/data/titanic-train.csv'))
+# as all inputs in naive bayes model must be quantitative (and boolean...), 
+# need to drop and reformat some columns
+```
+
+Before chopping off and modifying data...
+```{r}
+glimpse(main)
+# removing part
+removing.cols <- c('PassengerId','Name','Ticket','Cabin','Fare')
+main <- main[,(!(colnames(main) %in% removing.cols))]
+# changing qualitative data (more like strings...) -> quantitative data
+# bayes model does not work with continuous data, so will change age into 2 factors (child and adult)
+main$Age <- ifelse(main$Age < 20, 'child', 'adult')
+main[colnames(main)] <- lapply(main[colnames(main)], as.factor)
+```
+
+After modification...
+```{r}
+glimpse(main)
+```
+
+### Separate Train and Test Data
+```{r}
+# setting seed
+set.seed(33)
+# splitting data
+index.train <- sample(1:nrow(main), round(nrow(main) * 0.8))
+train <- main[index.train, ]
+test <- main[-index.train, ]
+# looking at the overall data
+glimpse(train)
+```
+
+### Create Naive Bayes Model
+```{r}
+nb.train <- naive_bayes(x = train[,-1], y = train[,1])
+nb.train
+```
+
+### Create Confusion Matrix
+```{r}
+prediction <- predict(nb.train, test)
+confusionMatrix(prediction, as.factor(test$Survived))
+```
+
+## Use caret package to find accuracy of the model (i.e. do Cross Validation)
+```{r}
+# 10-fold
+ctrl <- caret::trainControl(method="cv", number=10)
+# naivebayes Package
+nb.cv10.train <- caret::train(x = train[,-1], y = train[,1], trControl=ctrl, method="naive_bayes")
+print(nb.cv10.train)
+```
+
+This is one of the major downside of using naive bayes. While other ML models have variables that you can tweak so
+that the results can be enhanced, Naive Bayes if used and turns out the model isn't very good, then this model cannot
+be used for that dataset.
+
+
+
+
+
+
