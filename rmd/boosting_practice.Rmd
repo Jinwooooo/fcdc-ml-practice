@@ -18,7 +18,7 @@ library(pacman)
 pacman::p_load(dplyr,xgboost,gbm,caret,rpart,kernlab)
 # looking at overall look of the data
 data(spam)
-spam
+glimpse(spam)
 ```
 
 ### Separate Test and Train Data
@@ -34,7 +34,7 @@ index.train <- sample(1:nrow(mail), round(nrow(mail) * 0.8))
 train <- mail[index.train, ]
 test <- mail[-index.train, ]
 # looking at the overall data
-train
+glimpse(train)
 ```
 
 ### Model with xgboost

@@ -13,10 +13,10 @@ Using spam mail data
 
 ```{r}
 library(pacman)
-pacman::p_load(kernlab,caret,randomForest)
+pacman::p_load(kernlab,dplyr,caret,randomForest)
 # looking at overall look of the data
 data(spam)
-spam
+glimpse(spam)
 ```
 
 ### Separate Test and Train Data
@@ -28,7 +28,7 @@ index.train <- sample(1:nrow(spam), round(nrow(spam) * 0.8))
 train <- spam[index.train, ]
 test <- spam[-index.train, ]
 # looking at the overall data
-train
+glimpse(train)
 ```
 
 ### Generate Model using Random Forest
