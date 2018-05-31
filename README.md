@@ -14,7 +14,7 @@
 * [k Means](https://rawgit.com/Jinwooooo/fcdc-ml-practice/master/html/kMeans_practice.html)
 * [Naive Bayes](https://rawgit.com/Jinwooooo/fcdc-ml-practice/master/html/naive_bayes_practice.html)
 * [Support Vector Machine](https://rawgit.com/Jinwooooo/fcdc-ml-practice/master/html/svm_practice.html)
-* [Random Forest]()
-* [Boosting]()
+* [Random Forest](https://rawgit.com/Jinwooooo/fcdc-ml-practice/master/html/random_forest_practice.html)
+* [Boosting](https://rawgit.com/Jinwooooo/fcdc-ml-practice/master/html/boosting_practice.html)
 
 ---

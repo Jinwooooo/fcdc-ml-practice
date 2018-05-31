@@ -1,0 +1,91 @@
+---
+title: "Boosting Practice"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+### Table of Contents
+Using spam mail data from kernlab
+1. Separate Test and Train Data
+2. Model with xgboost
+3. Predict and Create Confusion Matrix
+4. Find how much Weight each Variable Has
+5. Use 5-fold CV to find the best Model
+6. Predict and Create Confusion Matrix for the new Model
+
+```{r}
+library(pacman)
+pacman::p_load(dplyr,xgboost,gbm,caret,rpart,kernlab)
+# looking at overall look of the data
+data(spam)
+spam
+```
+
+### Separate Test and Train Data
+
+Have to slighly alter data before inserting into the model
+```{r}
+mail <- spam
+mail$type <- ifelse(mail$type=='spam', 1, 0)
+# setting seed
+set.seed(77)
+# splitting data
+index.train <- sample(1:nrow(mail), round(nrow(mail) * 0.8))
+train <- mail[index.train, ]
+test <- mail[-index.train, ]
+# looking at the overall data
+train
+```
+
+### Model with xgboost
+
+```{r}
+train.boost <- xgboost(data=data.matrix(train[,-58]), label=train[,58], max_depth=4,
+                       eta=0.2, nrounds=500, objective='multi:softmax', num_class=2)
+```
+
+### Predict and Create Confusion Matrix
+
+```{r}
+# predicting
+pred.spam <- predict(train.boost, newdata=data.matrix(test[,-58]), ntreelimit=500)
+# confusion matrix
+caret::confusionMatrix(as.factor(ifelse(pred.spam==1, "spam", "nospam")), as.factor(ifelse(test[,58]==1, "spam", "nospam")))
+```
+
+### Find how much Weight each Variable Has
+
+Finding Weights
+```{r}
+weight.spam <- xgboost::xgb.importance(feature_names=colnames(spam)[1:ncol(spam)-1], model=train.boost)
+weight.spam
+```
+
+Plotting for Visualization
+```{r}
+xgboost::xgb.plot.importance(importance_matrix = weight.spam, top_n = 25)
+```
+
+### Use 5-fold CV to find the best Model
+```{r}
+train.cv <- trainControl(method="cv", number=5)
+grid = expand.grid(gamma=0, colsample_bytree=1, min_child_weight=1, subsample=1, 
+                   max_depth=c(3, 4, 5), eta=c(0.1, 0.2, 0.3), nrounds=500)
+
+spam.boost.caret <- train(x = data.matrix(train[,-58]), y=as.factor(train[,58]),
+                     trControl=train.cv, tuneGrid=grid, method="xgbTree")
+
+print(spam.boost.caret)
+```
+
+### Predict and Create Confusion Matrix for the new Model
+```{r}
+pred.spam.caret <- predict(spam.boost.caret, newdata=data.matrix(test[,-58]), ntreelimit=500)
+confusionMatrix(as.factor(ifelse(pred.spam.caret==1, "spam", "nospam")), as.factor(ifelse(test[,58]==1, "spam", "nospam")))
+```
+
+
+
+
+
+

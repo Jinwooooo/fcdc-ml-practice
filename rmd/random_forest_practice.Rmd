@@ -1,0 +1,50 @@
+---
+title: "Random Forest Practice"
+author: "Jinwoo Chung"
+output: html_document
+---
+
+### Table of Contents
+Using spam mail data
+1. Separate Test and Train Data
+2. Generate Model using Random Forest
+3. Generate Confusion Matrix
+4. Find each Variables Weights and Plot
+
+```{r}
+library(pacman)
+pacman::p_load(kernlab,caret,randomForest)
+# looking at overall look of the data
+data(spam)
+spam
+```
+
+### Separate Test and Train Data
+```{r}
+# setting seed
+set.seed(88)
+# splitting data
+index.train <- sample(1:nrow(spam), round(nrow(spam) * 0.8))
+train <- spam[index.train, ]
+test <- spam[-index.train, ]
+# looking at the overall data
+train
+```
+
+### Generate Model using Random Forest
+```{r}
+spam.rf <- randomForest::randomForest(type ~ ., data=train, mtry=8, ntree=500, importance=TRUE)
+spam.rf
+```
+
+### Generate Confusion Matrix
+```{r}
+pred.rf <- predict(spam.rf, newdata=test)
+caret::confusionMatrix(as.factor(pred.rf), as.factor(test$type))
+```
+
+### Find each Variables Weights and Plot
+```{r}
+randomForest::importance(spam.rf)
+randomForest::varImpPlot(spam.rf)
+```
